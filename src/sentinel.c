@@ -4304,11 +4304,8 @@ void sentinelCheckTiltCondition(void) {
     sentinel.previous_time = mstime();
 }
 
-//
 void sentinelTimer(void) {
-    //判断是否进入TTL模式
     sentinelCheckTiltCondition();
-    //
     sentinelHandleDictOfRedisInstances(sentinel.masters);
     sentinelRunPendingScripts();
     sentinelCollectTerminatedScripts();
