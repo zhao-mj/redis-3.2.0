@@ -302,6 +302,7 @@ struct evictionPoolEntry *evictionPoolAlloc(void);
 
 /* Low level logging. To use only for very big messages, otherwise
  * serverLog() is to prefer. */
+
 void serverLogRaw(int level, const char *msg) {
     const int syslogLevelMap[] = { LOG_DEBUG, LOG_INFO, LOG_NOTICE, LOG_WARNING };
     const char *c = ".-*#";
@@ -1428,7 +1429,7 @@ void createSharedObjects(void) {
     shared.minstring = createStringObject("minstring",9);
     shared.maxstring = createStringObject("maxstring",9);
 }
-
+//初始化服务配置信息
 void initServerConfig(void) {
     int j;
 
@@ -1718,6 +1719,7 @@ void adjustOpenFilesLimit(void) {
  * to the value of /proc/sys/net/core/somaxconn, or warn about it. */
 void checkTcpBacklogSettings(void) {
 #ifdef HAVE_PROC_SOMAXCONN
+    //接收新 TCP 连接侦听队列的大小
     FILE *fp = fopen("/proc/sys/net/core/somaxconn","r");
     char buf[1024];
     if (!fp) return;
@@ -1829,6 +1831,7 @@ void resetServerStats(void) {
     server.aof_delayed_fsync = 0;
 }
 
+//初始化服务信息
 void initServer(void) {
     int j;
 
@@ -1858,10 +1861,13 @@ void initServer(void) {
 
     createSharedObjects();
     adjustOpenFilesLimit();
+    //创建事件驱动
     server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);
+    //db配置
     server.db = zmalloc(sizeof(redisDb)*server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
+    //监听端口
     if (server.port != 0 &&
         listenToPort(server.port,server.ipfd,&server.ipfd_count) == C_ERR)
         exit(1);
@@ -1885,6 +1891,7 @@ void initServer(void) {
     }
 
     /* Create the Redis databases, and initialize other internal state. */
+    //db信息
     for (j = 0; j < server.dbnum; j++) {
         server.db[j].dict = dictCreate(&dbDictType,NULL);
         server.db[j].expires = dictCreate(&keyptrDictType,NULL);
@@ -1895,6 +1902,7 @@ void initServer(void) {
         server.db[j].id = j;
         server.db[j].avg_ttl = 0;
     }
+    //订阅/发布初始化
     server.pubsub_channels = dictCreate(&keylistDictType,NULL);
     server.pubsub_patterns = listCreate();
     listSetFreeMethod(server.pubsub_patterns,freePubsubPattern);
@@ -1923,6 +1931,7 @@ void initServer(void) {
 
     /* Create the serverCron() time event, that's our main way to process
      * background operations. */
+    //创建时间事件
     if(aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         serverPanic("Can't create the serverCron time event.");
         exit(1);
@@ -1930,7 +1939,9 @@ void initServer(void) {
 
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
+    //创建文件事件
     for (j = 0; j < server.ipfd_count; j++) {
+        //监听客户端连接
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
             acceptTcpHandler,NULL) == AE_ERR)
             {
@@ -1943,6 +1954,7 @@ void initServer(void) {
 
     /* Open the AOF file if needed. */
     if (server.aof_state == AOF_ON) {
+        //打开AOF文件
         server.aof_fd = open(server.aof_filename,
                                O_WRONLY|O_APPEND|O_CREAT,0644);
         if (server.aof_fd == -1) {
@@ -1961,12 +1973,17 @@ void initServer(void) {
         server.maxmemory = 3072LL*(1024*1024); /* 3 GB */
         server.maxmemory_policy = MAXMEMORY_NO_EVICTION;
     }
-
+    //集群模式初始化
     if (server.cluster_enabled) clusterInit();
+    //初始化主从复制信息
     replicationScriptCacheInit();
+    //初始化LUA脚本信息
     scriptingInit(1);
+    //初始化慢日志信息
     slowlogInit();
+    //延迟事件初始化
     latencyMonitorInit();
+    //bio系统初始化
     bioInit();
 }
 
@@ -3946,6 +3963,7 @@ int main(int argc, char **argv) {
     gettimeofday(&tv,NULL);
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
     server.sentinel_mode = checkForSentinelMode(argc,argv);
+    //初始化服务配置
     initServerConfig();
 
     /* Store the executable path and arguments in a safe place in order
@@ -3958,6 +3976,7 @@ int main(int argc, char **argv) {
     /* We need to init sentinel right now as parsing the configuration file
      * in sentinel mode will have the effect of populating the sentinel
      * data structures with master nodes to monitor. */
+    //哨兵模式
     if (server.sentinel_mode) {
         initSentinelConfig();
         initSentinel();
@@ -4031,6 +4050,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
         resetServerSaveParams();
+        //加载配置文件
         loadServerConfig(configfile,options);
         sdsfree(options);
     } else {
@@ -4040,11 +4060,12 @@ int main(int argc, char **argv) {
     server.supervised = redisIsSupervised(server.supervised_mode);
     int background = server.daemonize && !server.supervised;
     if (background) daemonize();
-
+    //初始化服务信息
     initServer();
     if (background || server.pidfile) createPidFile();
     redisSetProcTitle(argv[0]);
     redisAsciiArt();
+    //tcp连接侦听队列大小设置
     checkTcpBacklogSettings();
 
     if (!server.sentinel_mode) {
@@ -4053,6 +4074,7 @@ int main(int argc, char **argv) {
     #ifdef __linux__
         linuxMemoryWarnings();
     #endif
+        //从db备份文件中加载数据
         loadDataFromDisk();
         if (server.cluster_enabled) {
             if (verifyClusterConfigWithData() == C_ERR) {
@@ -4067,6 +4089,7 @@ int main(int argc, char **argv) {
         if (server.sofd > 0)
             serverLog(LL_NOTICE,"The server is now ready to accept connections at %s", server.unixsocket);
     } else {
+        //哨兵模式下运行
         sentinelIsRunning();
     }
 
@@ -4074,9 +4097,11 @@ int main(int argc, char **argv) {
     if (server.maxmemory > 0 && server.maxmemory < 1024*1024) {
         serverLog(LL_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);
     }
-
+    //事件之前调用函数
     aeSetBeforeSleepProc(server.el,beforeSleep);
+    //监听事件
     aeMain(server.el);
+    //删除事件驱动
     aeDeleteEventLoop(server.el);
     return 0;
 }
