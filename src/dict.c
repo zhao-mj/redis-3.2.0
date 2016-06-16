@@ -696,13 +696,17 @@ unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count) {
     maxsteps = count*10;
 
     /* Try to do a rehashing work proportional to 'count'. */
+    //rehash count次
     for (j = 0; j < count; j++) {
         if (dictIsRehashing(d))
             _dictRehashStep(d);
         else
             break;
     }
-
+    // 
+    // 当rehash进行中,maxsizemask = max(d->ht[0].sizemask,d->ht[1].sizemask)
+    // 当非rehash时， maxsizemask = d->ht[0].sizemask
+    // sizemask : hash掩码
     tables = dictIsRehashing(d) ? 2 : 1;
     maxsizemask = d->ht[0].sizemask;
     if (tables > 1 && maxsizemask < d->ht[1].sizemask)
@@ -731,6 +735,7 @@ unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count) {
              * locations if they reach 'count' (with a minimum of 5). */
             if (he == NULL) {
                 emptylen++;
+                //当连续count次未获取到数据时(必须>=5)，则重新随机下标
                 if (emptylen >= 5 && emptylen > count) {
                     i = random() & maxsizemask;
                     emptylen = 0;
@@ -740,6 +745,7 @@ unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count) {
                 while (he) {
                     /* Collect all the elements of the buckets found non
                      * empty while iterating. */
+                    //将he添加至des中
                     *des = he;
                     des++;
                     he = he->next;

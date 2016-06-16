@@ -3371,7 +3371,10 @@ struct evictionPoolEntry *evictionPoolAlloc(void) {
  * We insert keys on place in ascending order, so keys with the smaller
  * idle time are on the left, and keys with the higher idle time on the
  * right. */
-
+//freeMemoryIfNeeded的辅助函数，用于收集一些即将过期的键，并添加到evictionPool
+//当keys比当前keys中的一个idle time要小时，则会被添加
+//当一些未被应用的entries，也会被添加
+//添加key操作，按照升序进行的，因此较小的idle time key位于左边，较高的位于右边
 #define EVICTION_SAMPLES_ARRAY_SIZE 16
 void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEntry *pool) {
     int j, k, count;

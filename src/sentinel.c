@@ -2469,6 +2469,7 @@ void sentinelReceiveHelloMessages(redisAsyncContext *c, void *reply, void *privd
     /* Update the last activity in the pubsub channel. Note that since we
      * receive our messages as well this timestamp can be used to detect
      * if the link is probably disconnected even if it seems otherwise. */
+    //更新收到hello频道消息时间
     ri->link->pc_last_activity = mstime();
 
     /* Sanity check in the reply we expect, so that the code that follows
@@ -2516,7 +2517,7 @@ int sentinelSendHello(sentinelRedisInstance *ri) {
         //广播ip
         announce_ip = sentinel.announce_ip;
     } else {
-        //监听的服务器ip
+        //获取ri实例ip
         if (anetSockName(ri->link->cc->c.fd,ip,sizeof(ip),NULL) == -1)
             return C_ERR;
         announce_ip = ip;
