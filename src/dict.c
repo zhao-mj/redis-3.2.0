@@ -686,6 +686,9 @@ dictEntry *dictGetRandomKey(dict *d)
  * of continuous elements to run some kind of algorithm or to produce
  * statistics. However the function is much faster than dictGetRandomKey()
  * at producing N elements. */
+//该函数功能：从随机位置中抽取一部分keys，并返回
+//需要注意：
+//该函数不能保证返回指定数量的keys(count)，也不能保证无重复的数据，然而系统将尽量避免两种情况的发生
 unsigned int dictGetSomeKeys(dict *d, dictEntry **des, unsigned int count) {
     unsigned long j; /* internal hash table id, 0 or 1. */
     unsigned long tables; /* 1 or 2 tables? */

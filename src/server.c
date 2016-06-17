@@ -3388,7 +3388,7 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
     } else {
         samples = zmalloc(sizeof(samples[0])*server.maxmemory_samples);
     }
-
+    //随机获取一批keys
     count = dictGetSomeKeys(sampledict,samples,server.maxmemory_samples);
     for (j = 0; j < count; j++) {
         unsigned long long idle;
@@ -3397,10 +3397,12 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
         dictEntry *de;
 
         de = samples[j];
+        //获取key
         key = dictGetKey(de);
         /* If the dictionary we are sampling from is not the main
          * dictionary (but the expires one) we need to lookup the key
          * again in the key dictionary to obtain the value object. */
+        //当系统从db.expires 采样时，则需要根据key从db.dict获取对应的值
         if (sampledict != keydict) de = dictFind(keydict, key);
         o = dictGetVal(de);
         idle = estimateObjectIdleTime(o);
@@ -3415,15 +3417,18 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
         if (k == 0 && pool[MAXMEMORY_EVICTION_POOL_SIZE-1].key != NULL) {
             /* Can't insert if the element is < the worst element we have
              * and there are no empty buckets. */
+            //pool空间已满，无法插入
             continue;
         } else if (k < MAXMEMORY_EVICTION_POOL_SIZE && pool[k].key == NULL) {
             /* Inserting into empty position. No setup needed before insert. */
+            //找到一个空位置
         } else {
             /* Inserting in the middle. Now k points to the first element
              * greater than the element to insert.  */
             if (pool[MAXMEMORY_EVICTION_POOL_SIZE-1].key == NULL) {
                 /* Free space on the right? Insert at k shifting
                  * all the elements from k to end to the right. */
+                //将K右边的节点右移一个单元
                 memmove(pool+k+1,pool+k,
                     sizeof(pool[0])*(MAXMEMORY_EVICTION_POOL_SIZE-k-1));
             } else {
@@ -3431,16 +3436,19 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
                 k--;
                 /* Shift all elements on the left of k (included) to the
                  * left, so we discard the element with smaller idle time. */
+                //将k左边的节点往左移一个单元
                 sdsfree(pool[0].key);
                 memmove(pool,pool+1,sizeof(pool[0])*k);
             }
         }
+        //保存key
         pool[k].key = sdsdup(key);
+        //保存key对应的idle属性
         pool[k].idle = idle;
     }
     if (samples != _samples) zfree(samples);
 }
-
+//释放内存
 int freeMemoryIfNeeded(void) {
     size_t mem_used, mem_tofree, mem_freed;
     int slaves = listLength(server.slaves);
@@ -3519,8 +3527,10 @@ int freeMemoryIfNeeded(void) {
                         de = dictFind(dict,pool[k].key);
 
                         /* Remove the entry from the pool. */
+                        //释放key
                         sdsfree(pool[k].key);
                         /* Shift all elements on its right to left. */
+                        //左移一个单元
                         memmove(pool+k,pool+k+1,
                             sizeof(pool[0])*(MAXMEMORY_EVICTION_POOL_SIZE-k-1));
                         /* Clear the element on the right which is empty
