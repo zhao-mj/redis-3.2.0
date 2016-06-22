@@ -54,11 +54,11 @@ typedef struct sentinelAddr {
 #define SRI_MASTER  (1<<0)
 #define SRI_SLAVE   (1<<1)
 #define SRI_SENTINEL (1<<2)
-#define SRI_S_DOWN (1<<3)   /* Subjectively down (no quorum). */
-#define SRI_O_DOWN (1<<4)   /* Objectively down (confirmed by others). */
+#define SRI_S_DOWN (1<<3)   /* Subjectively down (no quorum). */ //主观下线 
+#define SRI_O_DOWN (1<<4)   /* Objectively down (confirmed by others). */ //客观下线
 #define SRI_MASTER_DOWN (1<<5) /* A Sentinel with this flag set thinks that
                                    its master is down. */
-#define SRI_FAILOVER_IN_PROGRESS (1<<6) /* Failover is in progress for
+#define SRI_FAILOVER_IN_PROGRESS (1<<6) /* Failover is in progress for //故障转移
                                            this master. */
 #define SRI_PROMOTED (1<<7)            /* Slave selected for promotion. */
 #define SRI_RECONF_SENT (1<<8)     /* SLAVEOF <newmaster> sent. */
@@ -2514,7 +2514,7 @@ int sentinelSendHello(sentinelRedisInstance *ri) {
     /* Use the specified announce address if specified, otherwise try to
      * obtain our own IP address. */
     if (sentinel.announce_ip) {
-        //广播ip
+        //用户配置的ip地址
         announce_ip = sentinel.announce_ip;
     } else {
         //获取ri实例ip
@@ -2624,7 +2624,7 @@ void sentinelSendPeriodicCommands(sentinelRedisInstance *ri) {
      * period. In this state we want to closely monitor slaves in case they
      * are turned into masters by another Sentinel, or by the sysadmin. */
     //设置发送info命令的周期
-    // 1.当前为从服务器 且 该从服务器的主服务器处于主观下线状态，则每秒发送一次info
+    // 1.当前为从服务器 且 该从服务器的主服务器处于客观下线状态，则每秒发送一次info
     // 2.非1情况，使用默认设置
     if ((ri->flags & SRI_SLAVE) &&
         (ri->master->flags & (SRI_O_DOWN|SRI_FAILOVER_IN_PROGRESS))) {
@@ -2997,6 +2997,7 @@ void sentinelCommand(client *c) {
         /* Vote for the master (or fetch the previous vote) if the request
          * includes a runid, otherwise the sender is not seeking for a vote. */
         if (ri && ri->flags & SRI_MASTER && strcasecmp(c->argv[5]->ptr,"*")) {
+            //设置领头羊
             leader = sentinelVoteLeader(ri,(uint64_t)req_epoch,
                                             c->argv[5]->ptr,
                                             &leader_epoch);
@@ -3004,6 +3005,7 @@ void sentinelCommand(client *c) {
 
         /* Reply with a three-elements multi-bulk reply:
          * down state, leader, vote epoch. */
+        //返回下线状态、领头羊、投票纪元
         addReplyMultiBulkLen(c,3);
         addReply(c, isdown ? shared.cone : shared.czero);
         addReplyBulkCString(c, leader ? leader : "*");
@@ -3528,7 +3530,7 @@ void sentinelCheckObjectivelyDown(sentinelRedisInstance *master) {
     dictIterator *di;
     dictEntry *de;
     unsigned int quorum = 0, odown = 0;
-
+    //主观下线状态
     if (master->flags & SRI_S_DOWN) {
         /* Is down for enough sentinels? */
         quorum = 1; /* the current sentinel. */
@@ -3639,7 +3641,7 @@ void sentinelAskMasterStateToOtherSentinels(sentinelRedisInstance *master, int f
          * 3) We did not received the info within SENTINEL_ASK_PERIOD ms. */
         //非主观下线状态 则进行退出
         if ((master->flags & SRI_S_DOWN) == 0) continue;
-        //断开连接
+        //已断开连接
         if (ri->link->disconnected) continue;
         //当处于非强制状态，判断距离最近一次回复的时间<SENTINEL_ASK_PERIOD,则进行跳过
         if (!(flags & SENTINEL_ASK_FORCED) &&
