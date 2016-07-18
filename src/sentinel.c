@@ -440,6 +440,7 @@ struct redisCommand sentinelcmds[] = {
 
 /* This function overwrites a few normal Redis config default with Sentinel
  * specific defaults. */
+//初始化sentinel默认设置
 void initSentinelConfig(void) {
     server.port = REDIS_SENTINEL_PORT;
 }
@@ -460,6 +461,7 @@ void initSentinel(void) {
     }
 
     /* Initialize various data structures. */
+    //初始化sentinel配置
     sentinel.current_epoch = 0;
     sentinel.masters = dictCreate(&instancesDictType,NULL);
     sentinel.tilt = 0;

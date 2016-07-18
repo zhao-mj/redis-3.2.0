@@ -129,13 +129,18 @@ void slowlogReset(void) {
  * Redis slow log. */
 void slowlogCommand(client *c) {
     if (c->argc == 2 && !strcasecmp(c->argv[1]->ptr,"reset")) {
+        //重置日志
         slowlogReset();
         addReply(c,shared.ok);
     } else if (c->argc == 2 && !strcasecmp(c->argv[1]->ptr,"len")) {
+        //返回慢日志长度
         addReplyLongLong(c,listLength(server.slowlog));
     } else if ((c->argc == 2 || c->argc == 3) &&
                !strcasecmp(c->argv[1]->ptr,"get"))
     {
+        //slowlog get  XXX命令
+        //获取慢日志数据
+        //count：返回的满日志数，默认为10条
         long count = 10, sent = 0;
         listIter li;
         void *totentries;
@@ -146,6 +151,8 @@ void slowlogCommand(client *c) {
             getLongFromObjectOrReply(c,c->argv[2],&count,NULL) != C_OK)
             return;
 
+        //重置指针指向表头
+        //获取指定数目的日志
         listRewind(server.slowlog,&li);
         totentries = addDeferredMultiBulkLength(c);
         while(count-- && (ln = listNext(&li))) {

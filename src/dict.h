@@ -45,20 +45,24 @@
 #define DICT_NOTUSED(V) ((void) V)
 
 typedef struct dictEntry {
-    void *key;
-    union {
+    void *key; //键
+    union {   
         void *val;
         uint64_t u64;
         int64_t s64;
         double d;
-    } v;
-    struct dictEntry *next;
+    } v; //值 采用联合体进行设计
+    struct dictEntry *next; //指向下一个元素指针
 } dictEntry;
 
 typedef struct dictType {
+    //计算hash值函数
     unsigned int (*hashFunction)(const void *key);
+    //键复制函数
     void *(*keyDup)(void *privdata, const void *key);
+    //值复制函数
     void *(*valDup)(void *privdata, const void *obj);
+    //键对比函数
     int (*keyCompare)(void *privdata, const void *key1, const void *key2);
     void (*keyDestructor)(void *privdata, void *key);
     void (*valDestructor)(void *privdata, void *obj);
@@ -67,24 +71,25 @@ typedef struct dictType {
 /* This is our hash table structure. Every dictionary has two of this as we
  * implement incremental rehashing, for the old to the new table. */
 typedef struct dictht {
-    dictEntry **table;
-    unsigned long size;
-    unsigned long sizemask;
-    unsigned long used;
+    dictEntry **table; //hash链表
+    unsigned long size; //hash大小
+    unsigned long sizemask; //hash掩码
+    unsigned long used; //节点数量
 } dictht;
 
 typedef struct dict {
-    dictType *type;
-    void *privdata;
-    dictht ht[2];
-    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
-    int iterators; /* number of iterators currently running */
+    dictType *type; //类型
+    void *privdata; 
+    dictht ht[2]; //哈希表
+    long rehashidx; //rehash索引，-1代表未进行rehash
+    int iterators; 
 } dict;
 
 /* If safe is set to 1 this is a safe iterator, that means, you can call
  * dictAdd, dictFind, and other functions against the dictionary even while
  * iterating. Otherwise it is a non safe iterator, and only dictNext()
  * should be called while iterating. */
+//迭代器
 typedef struct dictIterator {
     dict *d;
     long index;
@@ -97,6 +102,7 @@ typedef struct dictIterator {
 typedef void (dictScanFunction)(void *privdata, const dictEntry *de);
 
 /* This is the initial size of every hash table */
+//hash表默认大小
 #define DICT_HT_INITIAL_SIZE     4
 
 /* ------------------------------- Macros ------------------------------------*/
