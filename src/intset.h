@@ -33,8 +33,11 @@
 #include <stdint.h>
 
 typedef struct intset {
+	//编码
     uint32_t encoding;
+    //长度
     uint32_t length;
+    //集合
     int8_t contents[];
 } intset;
 

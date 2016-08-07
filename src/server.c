@@ -659,6 +659,7 @@ dictType replScriptCacheDictType = {
     NULL                        /* val destructor */
 };
 
+//判断是否达到重置空间的条件
 int htNeedsResize(dict *dict) {
     long long size, used;
 
@@ -704,6 +705,7 @@ int incrementallyRehash(int dbid) {
  * memory pages are copied). The goal of this function is to update the ability
  * for dict.c to resize the hash tables accordingly to the fact we have o not
  * running childs. */
+ //设置dict_can_resize值，该参数为rehash进行的一个条件。
 void updateDictResizePolicy(void) {
     if (server.rdb_child_pid == -1 && server.aof_child_pid == -1)
         dictEnableResize();

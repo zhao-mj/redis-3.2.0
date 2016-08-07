@@ -55,7 +55,9 @@
  * Note that even when dict_can_resize is set to 0, not all resizes are
  * prevented: a hash table is still allowed to grow if the ratio between
  * the number of elements and the buckets > dict_force_resize_ratio. */
+//resize开启标识 1：开启 0：关闭
 static int dict_can_resize = 1;
+//强制执行rehash条件
 static unsigned int dict_force_resize_ratio = 5;
 
 /* -------------------------- private prototypes ---------------------------- */
@@ -232,7 +234,7 @@ int dictExpand(dict *d, unsigned long size)
 
     /* Is this the first initialization? If so it's not really a rehashing
      * we just set the first hash table so that it can accept keys. */
-    //如果当前dict没有元素(初始化操作)，则将n设置为ht[0]
+    //如果dict是否为空(初始化操作)，则将n设置为ht[0】
     if (d->ht[0].table == NULL) {
         d->ht[0] = n;
         return DICT_OK;
@@ -257,13 +259,14 @@ int dictExpand(dict *d, unsigned long size)
 int dictRehash(dict *d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dictIsRehashing(d)) return 0;
-
+    //遍历ht[0],最多执行n个下标的迁移
     while(n-- && d->ht[0].used != 0) {
         dictEntry *de, *nextde;
 
         /* Note that rehashidx can't overflow as we are sure there are more
          * elements because ht[0].used != 0 */
         assert(d->ht[0].size > (unsigned long)d->rehashidx);
+        //查找有数据的哈希槽,每轮最多搜索10*n次
         while(d->ht[0].table[d->rehashidx] == NULL) {
             d->rehashidx++;
             if (--empty_visits == 0) return 1;
@@ -275,7 +278,10 @@ int dictRehash(dict *d, int n) {
 
             nextde = de->next;
             /* Get the index in the new hash table */
+            //将ht[0]数据迁移至ht[1]
+            //重新计算hash值
             h = dictHashKey(d, de->key) & d->ht[1].sizemask;
+            //将数据添加至表头
             de->next = d->ht[1].table[h];
             d->ht[1].table[h] = de;
             d->ht[0].used--;
@@ -283,11 +289,14 @@ int dictRehash(dict *d, int n) {
             de = nextde;
         }
         d->ht[0].table[d->rehashidx] = NULL;
+        //光标后移一位
         d->rehashidx++;
     }
 
     /* Check if we already rehashed the whole table... */
+    //判断是否迁移完毕
     if (d->ht[0].used == 0) {
+        //如果迁移完毕，则将ht[1]赋给ht[0],同时重置ht[1]
         zfree(d->ht[0].table);
         d->ht[0] = d->ht[1];
         _dictReset(&d->ht[1]);
@@ -337,6 +346,7 @@ int dictAdd(dict *d, void *key, void *val)
     dictEntry *entry = dictAddRaw(d,key);
 
     if (!entry) return DICT_ERR;
+    //设置键值
     dictSetVal(d, entry, val);
     return DICT_OK;
 }
@@ -401,15 +411,18 @@ int dictReplace(dict *d, void *key, void *val)
 
     /* Try to add the element. If the key
      * does not exists dictAdd will suceed. */
+    //如果key不存在，则进行创建
     if (dictAdd(d, key, val) == DICT_OK)
         return 1;
     /* It already exists, get the entry */
+    //如果key存在，则找到相应的节点
     entry = dictFind(d, key);
     /* Set the new value and free the old one. Note that it is important
      * to do that in this order, as the value may just be exactly the same
      * as the previous one. In this context, think to reference counting,
      * you want to increment (set), and then decrement (free), and not the
      * reverse. */
+     //修改节点的值
     auxentry = *entry;
     dictSetVal(d, entry, val);
     dictFreeVal(d, &auxentry);
