@@ -273,7 +273,7 @@ int pubsubPublishMessage(robj *channel, robj *message) {
 /*-----------------------------------------------------------------------------
  * Pubsub commands implementation
  *----------------------------------------------------------------------------*/
-
+//订阅频道信息
 void subscribeCommand(client *c) {
     int j;
 
@@ -281,19 +281,20 @@ void subscribeCommand(client *c) {
         pubsubSubscribeChannel(c,c->argv[j]);
     c->flags |= CLIENT_PUBSUB;
 }
-
+//取消订阅频道信息
 void unsubscribeCommand(client *c) {
     if (c->argc == 1) {
+        //取消订阅所有频道
         pubsubUnsubscribeAllChannels(c,1);
     } else {
         int j;
-
+        //取消订阅客户端指定的频道
         for (j = 1; j < c->argc; j++)
             pubsubUnsubscribeChannel(c,c->argv[j],1);
     }
     if (clientSubscriptionsCount(c) == 0) c->flags &= ~CLIENT_PUBSUB;
 }
-
+//订阅匹配模式的频道
 void psubscribeCommand(client *c) {
     int j;
 
