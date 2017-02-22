@@ -158,7 +158,7 @@ void loadServerConfigFromString(char *config) {
     int linenum = 0, totlines, i;
     int slaveof_linenum = 0;
     sds *lines;
-
+    //按\n进行分割
     lines = sdssplitlen(config,strlen(config),"\n",1,&totlines);
 
     for (i = 0; i < totlines; i++) {
@@ -166,6 +166,7 @@ void loadServerConfigFromString(char *config) {
         int argc;
 
         linenum = i+1;
+        //过滤每行的空格、\t、\r、\n
         lines[i] = sdstrim(lines[i]," \t\r\n");
 
         /* Skip comments and blank lines */
@@ -183,6 +184,7 @@ void loadServerConfigFromString(char *config) {
             sdsfreesplitres(argv,argc);
             continue;
         }
+        //转为小写
         sdstolower(argv[0]);
 
         /* Execute config directives */
@@ -287,6 +289,7 @@ void loadServerConfigFromString(char *config) {
                 err = "Invalid number of databases"; goto loaderr;
             }
         } else if (!strcasecmp(argv[0],"include") && argc == 2) {
+            //include配置文件
             loadServerConfig(argv[1],NULL);
         } else if (!strcasecmp(argv[0],"maxclients") && argc == 2) {
             server.maxclients = atoi(argv[1]);
@@ -614,7 +617,7 @@ void loadServerConfigFromString(char *config) {
         sdsfreesplitres(argv,argc);
     }
 
-    /* Sanity checks. */
+    //cluster开启时 不允许设置主从
     if (server.cluster_enabled && server.masterhost) {
         linenum = slaveof_linenum;
         i = linenum-1;
@@ -657,6 +660,7 @@ void loadServerConfig(char *filename, char *options) {
                 exit(1);
             }
         }
+        //逐行读取配置文件
         while(fgets(buf,CONFIG_MAX_LINE+1,fp) != NULL)
             config = sdscat(config,buf);
         if (fp != stdin) fclose(fp);
@@ -666,6 +670,7 @@ void loadServerConfig(char *filename, char *options) {
         config = sdscat(config,"\n");
         config = sdscat(config,options);
     }
+    //加载redis配置
     loadServerConfigFromString(config);
     sdsfree(config);
 }

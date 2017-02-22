@@ -1973,7 +1973,9 @@ void refreshGoodSlavesCount(void) {
  */
 
 /* Initialize the script cache, only called at startup. */
+//主从复制初始化
 void replicationScriptCacheInit(void) {
+    //复制缓冲区大小
     server.repl_scriptcache_size = 10000;
     server.repl_scriptcache_dict = dictCreate(&replScriptCacheDictType,NULL);
     server.repl_scriptcache_fifo = listCreate();
@@ -2003,6 +2005,7 @@ void replicationScriptCacheAdd(sds sha1) {
     sds key = sdsdup(sha1);
 
     /* Evict oldest. */
+    //如果list满了，则移除最旧的数据
     if (listLength(server.repl_scriptcache_fifo) == server.repl_scriptcache_size)
     {
         listNode *ln = listLast(server.repl_scriptcache_fifo);
@@ -2014,6 +2017,7 @@ void replicationScriptCacheAdd(sds sha1) {
     }
 
     /* Add current. */
+    //添加至头部
     retval = dictAdd(server.repl_scriptcache_dict,key,NULL);
     listAddNodeHead(server.repl_scriptcache_fifo,key);
     serverAssert(retval == DICT_OK);

@@ -1133,6 +1133,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     /* We received a SIGTERM, shutting down here in a safe way, as it is
      * not ok doing so inside the signal handler. */
     if (server.shutdown_asap) {
+        //收到kill信号，停止运行,软退出
         if (prepareForShutdown(SHUTDOWN_NOFLAGS) == C_OK) exit(0);
         serverLog(LL_WARNING,"SIGTERM received but errors trying to shut down the server, check the logs for more information");
         server.shutdown_asap = 0;
@@ -1783,10 +1784,12 @@ int listenToPort(int port, int *fds, int *count) {
             if (*count == 2) break;
         } else if (strchr(server.bindaddr[j],':')) {
             /* Bind IPv6 address. */
+            //IPV6
             fds[*count] = anetTcp6Server(server.neterr,port,server.bindaddr[j],
                 server.tcp_backlog);
         } else {
             /* Bind IPv4 address. */
+            //IPV4
             fds[*count] = anetTcpServer(server.neterr,port,server.bindaddr[j],
                 server.tcp_backlog);
         }
@@ -1797,6 +1800,7 @@ int listenToPort(int port, int *fds, int *count) {
                 port, server.neterr);
             return C_ERR;
         }
+        //非阻塞IO
         anetNonBlock(NULL,fds[*count]);
         (*count)++;
     }
@@ -1836,11 +1840,12 @@ void resetServerStats(void) {
 //初始化服务信息
 void initServer(void) {
     int j;
-
+    //SIG_ING 代表忽略SIGINT信号
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
+    //注册信号
     setupSignalHandlers();
-
+    //开启系统日志？
     if (server.syslog_enabled) {
         openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT,
             server.syslog_facility);
@@ -1933,7 +1938,7 @@ void initServer(void) {
 
     /* Create the serverCron() time event, that's our main way to process
      * background operations. */
-    //创建时间事件
+    //创建定时事件
     if(aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         serverPanic("Can't create the serverCron time event.");
         exit(1);
@@ -2553,12 +2558,14 @@ int prepareForShutdown(int flags) {
     /* Kill the saving child if there is a background saving in progress.
        We want to avoid race conditions, for instance our saving child may
        overwrite the synchronous saving did by SHUTDOWN. */
+    //rdb备份进行中
     if (server.rdb_child_pid != -1) {
         serverLog(LL_WARNING,"There is a child saving an .rdb. Killing it!");
         kill(server.rdb_child_pid,SIGUSR1);
+        //移除备份的文件
         rdbRemoveTempFile(server.rdb_child_pid);
     }
-
+    //aof进行中
     if (server.aof_state != AOF_OFF) {
         /* Kill the AOF saving child as the AOF we already have may be longer
          * but contains the full dataset anyway. */
@@ -2575,13 +2582,16 @@ int prepareForShutdown(int flags) {
         }
         /* Append only file: fsync() the AOF and exit */
         serverLog(LL_NOTICE,"Calling fsync() on the AOF file.");
+        //刷新aof缓存区
         aof_fsync(server.aof_fd);
     }
 
     /* Create a new RDB file before exiting. */
+    //设置了save
     if ((server.saveparamslen > 0 && !nosave) || save) {
         serverLog(LL_NOTICE,"Saving the final RDB snapshot before exiting.");
         /* Snapshotting. Perform a SYNC SAVE and exit */
+        //备份
         if (rdbSave(server.rdb_filename) != C_OK) {
             /* Ooops.. error saving! The best we can do is to continue
              * operating. Note that if there was a background saving process,
@@ -3765,7 +3775,7 @@ static void sigShutdownHandler(int sig) {
     serverLogFromHandler(LL_WARNING, msg);
     server.shutdown_asap = 1;
 }
-
+//注册信号
 void setupSignalHandlers(void) {
     struct sigaction act;
 
@@ -3773,6 +3783,7 @@ void setupSignalHandlers(void) {
      * Otherwise, sa_handler is used. */
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
+    //信号处理函数
     act.sa_handler = sigShutdownHandler;
     sigaction(SIGTERM, &act, NULL);
     sigaction(SIGINT, &act, NULL);
@@ -3972,11 +3983,14 @@ int main(int argc, char **argv) {
     spt_init(argc, argv);
 #endif
     setlocale(LC_COLLATE,"");
+    //线程安全
     zmalloc_enable_thread_safeness();
+    //设置申请内存告警函数
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
     srand(time(NULL)^getpid());
     gettimeofday(&tv,NULL);
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
+    //setinel_mode模式
     server.sentinel_mode = checkForSentinelMode(argc,argv);
     //初始化服务配置
     initServerConfig();
@@ -4074,6 +4088,7 @@ int main(int argc, char **argv) {
 
     server.supervised = redisIsSupervised(server.supervised_mode);
     int background = server.daemonize && !server.supervised;
+    //守护进程模式
     if (background) daemonize();
     //初始化服务信息
     initServer();
