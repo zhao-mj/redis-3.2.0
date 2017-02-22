@@ -46,6 +46,7 @@
 
 /* Include the best multiplexing layer supported by this system.
  * The following should be ordered by performances, descending. */
+//include 事件驱动包
 #ifdef HAVE_EVPORT
 #include "ae_evport.c"
 #else
@@ -454,6 +455,7 @@ int aeWait(int fd, int mask, long long milliseconds) {
     }
 }
 
+//异步事件处理入口函数
 void aeMain(aeEventLoop *eventLoop) {
     eventLoop->stop = 0;
     while (!eventLoop->stop) {
