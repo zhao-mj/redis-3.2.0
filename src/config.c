@@ -412,6 +412,7 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
         } else if (!strcasecmp(argv[0],"auto-aof-rewrite-percentage") &&
+            //自动重写百分比
                    argc == 2)
         {
             server.aof_rewrite_perc = atoi(argv[1]);

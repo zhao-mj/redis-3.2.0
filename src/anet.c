@@ -459,7 +459,7 @@ static int anetV6Only(char *err, int s) {
     }
     return ANET_OK;
 }
-
+//监听TCP端口
 static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backlog)
 {
     int s, rv;
