@@ -338,6 +338,7 @@ float zmalloc_get_fragmentation_ratio(size_t rss) {
 size_t zmalloc_get_smap_bytes_by_field(char *field) {
     char line[1024];
     size_t bytes = 0;
+    //获取当期进程使用内存情况
     FILE *fp = fopen("/proc/self/smaps","r");
     int flen = strlen(field);
 
@@ -361,6 +362,17 @@ size_t zmalloc_get_smap_bytes_by_field(char *field) {
 }
 #endif
 
+/**
+ * 一个函数是zmalloc_get_private_dirty,这是进程fork之后子进程多占用的内存，从/proc/self/smaps中读取Private_Dirty字段的值。
+ * 进程fork之后，开始内存是共享的，即从父进程那里继承的内存空间都是Private_Clean
+ * 运行一段时间之后,子进程对继承的内存空间做了修改，这部分内存就不能与父进程共享了，需要多占用，这部分就是Private_Dirty
+
+ *  Shared_Clean:多进程共享的内存，且其内容未被任意进程修改 
+    Shared_Dirty:多进程共享的内存，但其内容被某个进程修改 
+    Private_Clean:某个进程独享的内存，且其内容没有修改 
+    Private_Dirty:某个进程独享的内存，但其内容被该进程修改
+ *
+ */
 size_t zmalloc_get_private_dirty(void) {
     return zmalloc_get_smap_bytes_by_field("Private_Dirty:");
 }

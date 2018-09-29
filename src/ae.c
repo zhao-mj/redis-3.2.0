@@ -292,6 +292,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
         long long id;
 
         /* Remove events scheduled for deletion. */
+        //te->id == AE_DELETED_EVENT_ID: 表明定时事件已完成，需从列表中移除事件
         if (te->id == AE_DELETED_EVENT_ID) {
             aeTimeEvent *next = te->next;
             if (prev == NULL)
@@ -321,8 +322,10 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
             int retval;
 
             id = te->id;
+            //retval=运行的频率
             retval = te->timeProc(eventLoop, id, te->clientData);
             processed++;
+            //retval = AE_NOMORE: 执行一次
             if (retval != AE_NOMORE) {
                 aeAddMillisecondsToNow(retval,&te->when_sec,&te->when_ms);
             } else {
