@@ -337,7 +337,7 @@ void flushAppendOnlyFile(int force) {
 
     /* We performed the write so reset the postponed flush sentinel to zero. */
     server.aof_flush_postponed_start = 0;
-
+    //写入文件的数据不完整?
     if (nwritten != (signed)sdslen(server.aof_buf)) {
         static time_t last_write_error_log = 0;
         int can_log = 0;
@@ -350,12 +350,14 @@ void flushAppendOnlyFile(int force) {
 
         /* Log the AOF write error and record the error code. */
         if (nwritten == -1) {
+            //未写入任何数据
             if (can_log) {
                 serverLog(LL_WARNING,"Error writing to the AOF file: %s",
                     strerror(errno));
                 server.aof_last_write_errno = errno;
             }
         } else {
+            //部分数据成功写入
             if (can_log) {
                 serverLog(LL_WARNING,"Short write while writing to "
                                        "the AOF file: (nwritten=%lld, "
@@ -363,8 +365,9 @@ void flushAppendOnlyFile(int force) {
                                        (long long)nwritten,
                                        (long long)sdslen(server.aof_buf));
             }
-
+            //修改文件大小并删除已写入的部分数据
             if (ftruncate(server.aof_fd, server.aof_current_size) == -1) {
+                //修改失败
                 if (can_log) {
                     serverLog(LL_WARNING, "Could not remove short write "
                              "from the append-only file.  Redis may refuse "
@@ -372,6 +375,7 @@ void flushAppendOnlyFile(int force) {
                              "ftruncate: %s", strerror(errno));
                 }
             } else {
+                //修改成功
                 /* If the ftruncate() succeeded we can set nwritten to
                  * -1 since there is no longer partial data into the AOF. */
                 nwritten = -1;
@@ -395,8 +399,10 @@ void flushAppendOnlyFile(int force) {
 
             /* Trim the sds buffer if there was a partial write, and there
              * was no way to undo it with ftruncate(2). */
+            //部分数据写入情况，还原文件大小失败时 nwritten>0
             if (nwritten > 0) {
                 server.aof_current_size += nwritten;
+                //截取server.aof_buf
                 sdsrange(server.aof_buf,nwritten,-1);
             }
             return; /* We'll try again on the next call... */
@@ -404,16 +410,21 @@ void flushAppendOnlyFile(int force) {
     } else {
         /* Successful write(2). If AOF was in error state, restore the
          * OK state and log the event. */
+        //最后一次写入状态为C_ERR
         if (server.aof_last_write_status == C_ERR) {
             serverLog(LL_WARNING,
                 "AOF write error looks solved, Redis can write again.");
             server.aof_last_write_status = C_OK;
         }
     }
+    //aof_current_size计数累加
     server.aof_current_size += nwritten;
 
     /* Re-use AOF buffer when it is small enough. The maximum comes from the
      * arena size of 4k minus some overhead (but is otherwise arbitrary). */
+
+    //当server.aof_buf<4k时 清空缓冲区。。减少系统开销
+    //当server.aof_buf>4k时 释放空间
     if ((sdslen(server.aof_buf)+sdsavail(server.aof_buf)) < 4000) {
         sdsclear(server.aof_buf);
     } else {
@@ -432,12 +443,14 @@ void flushAppendOnlyFile(int force) {
         /* aof_fsync is defined as fdatasync() for Linux in order to avoid
          * flushing metadata. */
         latencyStartMonitor(latency);
+        //刷盘:将缓冲区的数据写入磁盘
         aof_fsync(server.aof_fd); /* Let's try to get this data on the disk */
         latencyEndMonitor(latency);
         latencyAddSampleIfNeeded("aof-fsync-always",latency);
         server.aof_last_fsync = server.unixtime;
     } else if ((server.aof_fsync == AOF_FSYNC_EVERYSEC &&
                 server.unixtime > server.aof_last_fsync)) {
+        //异步输盘操作
         if (!sync_in_progress) aof_background_fsync(server.aof_fd);
         server.aof_last_fsync = server.unixtime;
     }
@@ -1009,6 +1022,7 @@ ssize_t aofReadDiffFromParent(void) {
  * log Redis uses variadic commands when possible, such as RPUSH, SADD
  * and ZADD. However at max AOF_REWRITE_ITEMS_PER_CMD items per time
  * are inserted using a single command. */
+//重写aof文件
 int rewriteAppendOnlyFile(char *filename) {
     dictIterator *di = NULL;
     dictEntry *de;
@@ -1266,11 +1280,12 @@ int rewriteAppendOnlyFileBackground(void) {
     start = ustime();
     if ((childpid = fork()) == 0) {
         char tmpfile[256];
-
+        //子进程
         /* Child */
         closeListeningSockets(0);
         redisSetProcTitle("redis-aof-rewrite");
         snprintf(tmpfile,256,"temp-rewriteaof-bg-%d.aof", (int) getpid());
+        //重写aof文件
         if (rewriteAppendOnlyFile(tmpfile) == C_OK) {
             size_t private_dirty = zmalloc_get_private_dirty();
 
@@ -1285,6 +1300,7 @@ int rewriteAppendOnlyFileBackground(void) {
         }
     } else {
         /* Parent */
+        //主进程
         server.stat_fork_time = ustime()-start;
         server.stat_fork_rate = (double) zmalloc_used_memory() * 1000000 / server.stat_fork_time / (1024*1024*1024); /* GB per second. */
         latencyAddSampleIfNeeded("fork",server.stat_fork_time/1000);

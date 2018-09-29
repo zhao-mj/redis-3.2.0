@@ -56,7 +56,7 @@
 #include <sys/socket.h>
 
 /* Our shared "common" objects */
-
+//¹²Ïí¶ÔÏó
 struct sharedObjectsStruct shared;
 
 /* Global vars that are actually used as constants. The following double
@@ -122,6 +122,7 @@ struct redisServer server; /* server global state */
  *    Note that commands that may trigger a DEL as a side effect (like SET)
  *    are not fast commands.
  */
+//ÃüÁîÁĞ±í
 struct redisCommand redisCommandTable[] = {
     {"get",getCommand,2,"rF",0,NULL,1,1,1,0,0},
     {"set",setCommand,-3,"wm",0,NULL,1,1,1,0,0},
@@ -659,7 +660,7 @@ dictType replScriptCacheDictType = {
     NULL                        /* val destructor */
 };
 
-//åˆ¤æ–­æ˜¯å¦è¾¾åˆ°é‡ç½®ç©ºé—´çš„æ¡ä»¶
+//ÅĞ¶ÏÊÇ·ñ´ïµ½ÖØÖÃ¿Õ¼äµÄÌõ¼ş
 int htNeedsResize(dict *dict) {
     long long size, used;
 
@@ -705,7 +706,7 @@ int incrementallyRehash(int dbid) {
  * memory pages are copied). The goal of this function is to update the ability
  * for dict.c to resize the hash tables accordingly to the fact we have o not
  * running childs. */
- //è®¾ç½®dict_can_resizeå€¼ï¼Œè¯¥å‚æ•°ä¸ºrehashè¿›è¡Œçš„ä¸€ä¸ªæ¡ä»¶ã€‚
+ //ÉèÖÃdict_can_resizeÖµ£¬¸Ã²ÎÊıÎªrehash½øĞĞµÄÒ»¸öÌõ¼ş¡£
 void updateDictResizePolicy(void) {
     if (server.rdb_child_pid == -1 && server.aof_child_pid == -1)
         dictEnableResize();
@@ -1088,7 +1089,7 @@ void updateCachedTime(void) {
  * so in order to throttle execution of things we want to do less frequently
  * a macro is used: run_with_period(milliseconds) { .... }
  */
-//å®šæ—¶æ‰§è¡Œæ—¶é—´
+//¶¨Ê±Ö´ĞĞÊ±¼ä
 int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     int j;
     UNUSED(eventLoop);
@@ -1133,7 +1134,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     /* We received a SIGTERM, shutting down here in a safe way, as it is
      * not ok doing so inside the signal handler. */
     if (server.shutdown_asap) {
-        //æ”¶åˆ°killä¿¡å·ï¼Œåœæ­¢è¿è¡Œ,è½¯é€€å‡º
+        //ÊÕµ½killĞÅºÅ£¬Í£Ö¹ÔËĞĞ,ÈíÍË³ö
         if (prepareForShutdown(SHUTDOWN_NOFLAGS) == C_OK) exit(0);
         serverLog(LL_WARNING,"SIGTERM received but errors trying to shut down the server, check the logs for more information");
         server.shutdown_asap = 0;
@@ -1173,10 +1174,11 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
 
     /* Start a scheduled AOF rewrite if this was requested by the user while
      * a BGSAVE was in progress. */
+    //µ±ÊÕµ½¿Í»§¶Ë·¢ËÍµÄaofÖØĞ´ÃüÁîºó£¬Èç¹û´ËÊ±ÏµÍ³ÕıÔÚ½øĞĞaofÖØĞ´£¬ÔòÍÆ³ÙÖ´ĞĞ¿Í»§¶ËµÄaofÖØĞ´ÃüÁî
     if (server.rdb_child_pid == -1 && server.aof_child_pid == -1 &&
         server.aof_rewrite_scheduled)
     {
-        //AOFå¤‡ä»½
+        //AOF±¸·İ
         rewriteAppendOnlyFileBackground();
     }
 
@@ -1199,12 +1201,12 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
                     strerror(errno),
                     (int) server.rdb_child_pid,
                     (int) server.aof_child_pid);
-            } else if (pid == server.rdb_child_pid) {//RDBå­è¿›ç¨‹é€€å‡ºä¿¡å·
+            } else if (pid == server.rdb_child_pid) {//RDB×Ó½ø³ÌÍË³öĞÅºÅ
                 backgroundSaveDoneHandler(exitcode,bysignal);
-            } else if (pid == server.aof_child_pid) {//AOFå­è¿›ç¨‹é€€å‡ºä¿¡å·
+            } else if (pid == server.aof_child_pid) {//AOF×Ó½ø³ÌÍË³öĞÅºÅ
                 backgroundRewriteDoneHandler(exitcode,bysignal);
             } else {
-                if (!ldbRemoveChild(pid)) {
+                if (!ldbRemoveChild(pid)) { //lua½Å±¾ÍË³öĞÅºÅ
                     serverLog(LL_WARNING,
                         "Warning, detected child with unmatched pid: %ld",
                         (long)pid);
@@ -1222,7 +1224,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
              * the given amount of seconds, and if the latest bgsave was
              * successful or if, in case of an error, at least
              * CONFIG_BGSAVE_RETRY_DELAY seconds already elapsed. */
-            //RDBå¤‡ä»½
+            //RDB±¸·İ
             if (server.dirty >= sp->changes &&
                 server.unixtime-server.lastsave > sp->seconds &&
                 (server.unixtime-server.lastbgsave_try >
@@ -1245,7 +1247,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
             long long base = server.aof_rewrite_base_size ?
                             server.aof_rewrite_base_size : 1;
             long long growth = (server.aof_current_size*100/base) - 100;
-            //å½“å¢é•¿çš„ç™¾åˆ†æ¯”å¤§äºè®¾å®šçš„æ—¶å€™ è‡ªåŠ¨é‡å†™
+            //µ±Ôö³¤µÄ°Ù·Ö±È´óÓÚÉè¶¨µÄÊ±ºò ×Ô¶¯ÖØĞ´
             if (growth >= server.aof_rewrite_perc) {
                 serverLog(LL_NOTICE,"Starting automatic rewriting of AOF on %lld%% growth",growth);
                 rewriteAppendOnlyFileBackground();
@@ -1418,6 +1420,7 @@ void createSharedObjects(void) {
     shared.rpop = createStringObject("RPOP",4);
     shared.lpop = createStringObject("LPOP",4);
     shared.lpush = createStringObject("LPUSH",5);
+    //³õÊ¼»¯¹²ÏíÕûÊı(0~9999)
     for (j = 0; j < OBJ_SHARED_INTEGERS; j++) {
         shared.integers[j] = createObject(OBJ_STRING,(void*)(long)j);
         shared.integers[j]->encoding = OBJ_ENCODING_INT;
@@ -1435,7 +1438,7 @@ void createSharedObjects(void) {
     shared.minstring = createStringObject("minstring",9);
     shared.maxstring = createStringObject("maxstring",9);
 }
-//åˆå§‹åŒ–æœåŠ¡é…ç½®ä¿¡æ¯
+//³õÊ¼»¯·şÎñÅäÖÃĞÅÏ¢
 void initServerConfig(void) {
     int j;
 
@@ -1649,6 +1652,7 @@ int restartServer(int flags, mstime_t delay) {
  * If it will not be possible to set the limit accordingly to the configured
  * max number of clients, the function will do the reverse setting
  * server.maxclients to the value that we can actually handle. */
+//ÅĞ¶Ï¿Í»§¶Ë×î´óÁ¬½ÓÊı
 void adjustOpenFilesLimit(void) {
     rlim_t maxfiles = server.maxclients+CONFIG_MIN_RESERVED_FDS;
     struct rlimit limit;
@@ -1674,6 +1678,7 @@ void adjustOpenFilesLimit(void) {
 
                 limit.rlim_cur = bestlimit;
                 limit.rlim_max = bestlimit;
+                //ÉèÖÃµ¥½ø³Ì´ò¿ªµÄ×î´óÃèÊö·ûÊı
                 if (setrlimit(RLIMIT_NOFILE,&limit) != -1) break;
                 setrlimit_error = errno;
 
@@ -1725,7 +1730,7 @@ void adjustOpenFilesLimit(void) {
  * to the value of /proc/sys/net/core/somaxconn, or warn about it. */
 void checkTcpBacklogSettings(void) {
 #ifdef HAVE_PROC_SOMAXCONN
-    //æ¥æ”¶æ–° TCP è¿æ¥ä¾¦å¬é˜Ÿåˆ—çš„å¤§å°
+    //½ÓÊÕĞÂ TCP Á¬½ÓÕìÌı¶ÓÁĞµÄ´óĞ¡
     FILE *fp = fopen("/proc/sys/net/core/somaxconn","r");
     char buf[1024];
     if (!fp) return;
@@ -1803,7 +1808,7 @@ int listenToPort(int port, int *fds, int *count) {
                 port, server.neterr);
             return C_ERR;
         }
-        //éé˜»å¡IO
+        //·Ç×èÈûIO
         anetNonBlock(NULL,fds[*count]);
         (*count)++;
     }
@@ -1840,15 +1845,15 @@ void resetServerStats(void) {
     server.aof_delayed_fsync = 0;
 }
 
-//åˆå§‹åŒ–æœåŠ¡ä¿¡æ¯
+//³õÊ¼»¯·şÎñĞÅÏ¢
 void initServer(void) {
     int j;
-    //SIG_ING ä»£è¡¨å¿½ç•¥SIGINTä¿¡å·
+    //SIG_ING ´ú±íºöÂÔSIGINTĞÅºÅ
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
-    //æ³¨å†Œä¿¡å·
+    //×¢²áĞÅºÅ
     setupSignalHandlers();
-    //å¼€å¯ç³»ç»Ÿæ—¥å¿—ï¼Ÿ
+    //¿ªÆôÏµÍ³ÈÕÖ¾£¿
     if (server.syslog_enabled) {
         openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT,
             server.syslog_facility);
@@ -1856,9 +1861,12 @@ void initServer(void) {
 
     server.pid = getpid();
     server.current_client = NULL;
+    //¿Í»§¶ËÁĞ±í
     server.clients = listCreate();
     server.clients_to_close = listCreate();
+    //´ÓÊµÀıÁĞ±í
     server.slaves = listCreate();
+    //¼à¿Ø
     server.monitors = listCreate();
     server.clients_pending_write = listCreate();
     server.slaveseldb = -1; /* Force to emit the first SELECT command. */
@@ -1868,16 +1876,17 @@ void initServer(void) {
     server.get_ack_from_slaves = 0;
     server.clients_paused = 0;
     server.system_memory_size = zmalloc_get_memory_size();
-
+    
     createSharedObjects();
+    //ÅĞ¶Ï¿Í»§¶Ë×î´óÁ¬½ÓÊı
     adjustOpenFilesLimit();
-    //åˆ›å»ºäº‹ä»¶é©±åŠ¨
+    //´´½¨ÊÂ¼şÇı¶¯
     server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);
-    //dbé…ç½®
+    //dbÅäÖÃ
     server.db = zmalloc(sizeof(redisDb)*server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
-    //ç›‘å¬ç«¯å£
+    //¼àÌı¶Ë¿Ú
     if (server.port != 0 &&
         listenToPort(server.port,server.ipfd,&server.ipfd_count) == C_ERR)
         exit(1);
@@ -1901,7 +1910,7 @@ void initServer(void) {
     }
 
     /* Create the Redis databases, and initialize other internal state. */
-    //dbä¿¡æ¯
+    //dbĞÅÏ¢
     for (j = 0; j < server.dbnum; j++) {
         server.db[j].dict = dictCreate(&dbDictType,NULL);
         server.db[j].expires = dictCreate(&keyptrDictType,NULL);
@@ -1912,7 +1921,7 @@ void initServer(void) {
         server.db[j].id = j;
         server.db[j].avg_ttl = 0;
     }
-    //è®¢é˜…/å‘å¸ƒåˆå§‹åŒ–
+    //¶©ÔÄ/·¢²¼³õÊ¼»¯
     server.pubsub_channels = dictCreate(&keylistDictType,NULL);
     server.pubsub_patterns = listCreate();
     listSetFreeMethod(server.pubsub_patterns,freePubsubPattern);
@@ -1941,7 +1950,7 @@ void initServer(void) {
 
     /* Create the serverCron() time event, that's our main way to process
      * background operations. */
-    //åˆ›å»ºå®šæ—¶äº‹ä»¶
+    //´´½¨¶¨Ê±ÊÂ¼ş
     if(aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) {
         serverPanic("Can't create the serverCron time event.");
         exit(1);
@@ -1949,9 +1958,9 @@ void initServer(void) {
 
     /* Create an event handler for accepting new connections in TCP and Unix
      * domain sockets. */
-    //åˆ›å»ºæ–‡ä»¶äº‹ä»¶
+    //´´½¨ÎÄ¼şÊÂ¼ş
     for (j = 0; j < server.ipfd_count; j++) {
-        //ç›‘å¬å®¢æˆ·ç«¯è¿æ¥
+        //¼àÌı¿Í»§¶ËÁ¬½Ó
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
             acceptTcpHandler,NULL) == AE_ERR)
             {
@@ -1964,7 +1973,7 @@ void initServer(void) {
 
     /* Open the AOF file if needed. */
     if (server.aof_state == AOF_ON) {
-        //æ‰“å¼€AOFæ–‡ä»¶
+        //´ò¿ªAOFÎÄ¼ş
         server.aof_fd = open(server.aof_filename,
                                O_WRONLY|O_APPEND|O_CREAT,0644);
         if (server.aof_fd == -1) {
@@ -1983,17 +1992,17 @@ void initServer(void) {
         server.maxmemory = 3072LL*(1024*1024); /* 3 GB */
         server.maxmemory_policy = MAXMEMORY_NO_EVICTION;
     }
-    //é›†ç¾¤æ¨¡å¼åˆå§‹åŒ–
+    //¼¯ÈºÄ£Ê½³õÊ¼»¯
     if (server.cluster_enabled) clusterInit();
-    //åˆå§‹åŒ–ä¸»ä»å¤åˆ¶ä¿¡æ¯
+    //³õÊ¼»¯Ö÷´Ó¸´ÖÆĞÅÏ¢
     replicationScriptCacheInit();
-    //åˆå§‹åŒ–LUAè„šæœ¬ä¿¡æ¯
+    //³õÊ¼»¯LUA½Å±¾ĞÅÏ¢
     scriptingInit(1);
-    //åˆå§‹åŒ–æ…¢æ—¥å¿—ä¿¡æ¯
+    //³õÊ¼»¯ÂıÈÕÖ¾ĞÅÏ¢
     slowlogInit();
-    //å»¶è¿Ÿäº‹ä»¶åˆå§‹åŒ–
+    //ÑÓ³ÙÊÂ¼ş³õÊ¼»¯
     latencyMonitorInit();
-    //bioç³»ç»Ÿåˆå§‹åŒ–
+    //bioÏµÍ³³õÊ¼»¯
     bioInit();
 }
 
@@ -2129,10 +2138,10 @@ void propagate(struct redisCommand *cmd, int dbid, robj **argv, int argc,
                int flags)
 {
     if (server.aof_state != AOF_OFF && flags & PROPAGATE_AOF)
-        //è¿½åŠ åˆ°AOFæ–‡ä»¶
+        //×·¼Óµ½AOFÎÄ¼ş
         feedAppendOnlyFile(cmd,dbid,argv,argc);
     if (flags & PROPAGATE_REPL)
-        //åŒæ­¥ä»å®ä¾‹
+        //Í¬²½´ÓÊµÀı
         replicationFeedSlaves(server.slaves,dbid,argv,argc);
 }
 
@@ -2269,21 +2278,21 @@ void call(client *c, int flags) {
 
     /* Log the command into the Slow log if needed, and populate the
      * per-command statistics that we show in INFO commandstats. */
-    //è®°å½•æ…¢æ—¥å¿—
+    //¼ÇÂ¼ÂıÈÕÖ¾
     if (flags & CMD_CALL_SLOWLOG && c->cmd->proc != execCommand) {
         char *latency_event = (c->cmd->flags & CMD_FAST) ?
                               "fast-command" : "command";
         latencyAddSampleIfNeeded(latency_event,duration/1000);
         slowlogPushEntryIfNeeded(c->argv,c->argc,duration);
     }
-    //ç»Ÿè®¡
+    //Í³¼Æ
     if (flags & CMD_CALL_STATS) {
         c->lastcmd->microseconds += duration;
         c->lastcmd->calls++;
     }
 
     /* Propagate the command into the AOF and replication link */
-    //AOFå’Œä¸»ä»åŒæ­¥æ“ä½œ
+    //AOFºÍÖ÷´ÓÍ¬²½²Ù×÷
     if (flags & CMD_CALL_PROPAGATE &&
         (c->flags & CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
     {
@@ -2566,14 +2575,14 @@ int prepareForShutdown(int flags) {
     /* Kill the saving child if there is a background saving in progress.
        We want to avoid race conditions, for instance our saving child may
        overwrite the synchronous saving did by SHUTDOWN. */
-    //rdbå¤‡ä»½è¿›è¡Œä¸­
+    //rdb±¸·İ½øĞĞÖĞ
     if (server.rdb_child_pid != -1) {
         serverLog(LL_WARNING,"There is a child saving an .rdb. Killing it!");
         kill(server.rdb_child_pid,SIGUSR1);
-        //ç§»é™¤å¤‡ä»½çš„æ–‡ä»¶
+        //ÒÆ³ı±¸·İµÄÎÄ¼ş
         rdbRemoveTempFile(server.rdb_child_pid);
     }
-    //aofè¿›è¡Œä¸­
+    //aof½øĞĞÖĞ
     if (server.aof_state != AOF_OFF) {
         /* Kill the AOF saving child as the AOF we already have may be longer
          * but contains the full dataset anyway. */
@@ -2590,16 +2599,16 @@ int prepareForShutdown(int flags) {
         }
         /* Append only file: fsync() the AOF and exit */
         serverLog(LL_NOTICE,"Calling fsync() on the AOF file.");
-        //åˆ·æ–°aofç¼“å­˜åŒº
+        //Ë¢ĞÂaof»º´æÇø
         aof_fsync(server.aof_fd);
     }
 
     /* Create a new RDB file before exiting. */
-    //è®¾ç½®äº†save
+    //ÉèÖÃÁËsave
     if ((server.saveparamslen > 0 && !nosave) || save) {
         serverLog(LL_NOTICE,"Saving the final RDB snapshot before exiting.");
         /* Snapshotting. Perform a SYNC SAVE and exit */
-        //å¤‡ä»½
+        //±¸·İ
         if (rdbSave(server.rdb_filename) != C_OK) {
             /* Ooops.. error saving! The best we can do is to continue
              * operating. Note that if there was a background saving process,
@@ -3391,10 +3400,10 @@ struct evictionPoolEntry *evictionPoolAlloc(void) {
  * We insert keys on place in ascending order, so keys with the smaller
  * idle time are on the left, and keys with the higher idle time on the
  * right. */
-//freeMemoryIfNeededçš„è¾…åŠ©å‡½æ•°ï¼Œç”¨äºæ”¶é›†ä¸€äº›å³å°†è¿‡æœŸçš„é”®ï¼Œå¹¶æ·»åŠ åˆ°evictionPool
-//å½“keysæ¯”å½“å‰keysä¸­çš„ä¸€ä¸ªidle timeè¦å°æ—¶ï¼Œåˆ™ä¼šè¢«æ·»åŠ 
-//å½“ä¸€äº›æœªè¢«åº”ç”¨çš„entriesï¼Œä¹Ÿä¼šè¢«æ·»åŠ 
-//æ·»åŠ keyæ“ä½œï¼ŒæŒ‰ç…§å‡åºè¿›è¡Œçš„ï¼Œå› æ­¤è¾ƒå°çš„idle time keyä½äºå·¦è¾¹ï¼Œè¾ƒé«˜çš„ä½äºå³è¾¹
+//freeMemoryIfNeededµÄ¸¨Öúº¯Êı£¬ÓÃÓÚÊÕ¼¯Ò»Ğ©¼´½«¹ıÆÚµÄ¼ü£¬²¢Ìí¼Óµ½evictionPool
+//µ±keys±Èµ±Ç°keysÖĞµÄÒ»¸öidle timeÒªĞ¡Ê±£¬Ôò»á±»Ìí¼Ó
+//µ±Ò»Ğ©Î´±»Ó¦ÓÃµÄentries£¬Ò²»á±»Ìí¼Ó
+//Ìí¼Ókey²Ù×÷£¬°´ÕÕÉıĞò½øĞĞµÄ£¬Òò´Ë½ÏĞ¡µÄidle time keyÎ»ÓÚ×ó±ß£¬½Ï¸ßµÄÎ»ÓÚÓÒ±ß
 #define EVICTION_SAMPLES_ARRAY_SIZE 16
 void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEntry *pool) {
     int j, k, count;
@@ -3408,7 +3417,7 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
     } else {
         samples = zmalloc(sizeof(samples[0])*server.maxmemory_samples);
     }
-    //éšæœºè·å–ä¸€æ‰¹keys
+    //Ëæ»ú»ñÈ¡Ò»Åúkeys
     count = dictGetSomeKeys(sampledict,samples,server.maxmemory_samples);
     for (j = 0; j < count; j++) {
         unsigned long long idle;
@@ -3417,12 +3426,12 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
         dictEntry *de;
 
         de = samples[j];
-        //è·å–key
+        //»ñÈ¡key
         key = dictGetKey(de);
         /* If the dictionary we are sampling from is not the main
          * dictionary (but the expires one) we need to lookup the key
          * again in the key dictionary to obtain the value object. */
-        //å½“ç³»ç»Ÿä»db.expires é‡‡æ ·æ—¶ï¼Œåˆ™éœ€è¦æ ¹æ®keyä»db.dictè·å–å¯¹åº”çš„å€¼
+        //µ±ÏµÍ³´Ódb.expires ²ÉÑùÊ±£¬ÔòĞèÒª¸ù¾İkey´Ódb.dict»ñÈ¡¶ÔÓ¦µÄÖµ
         if (sampledict != keydict) de = dictFind(keydict, key);
         o = dictGetVal(de);
         idle = estimateObjectIdleTime(o);
@@ -3437,18 +3446,18 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
         if (k == 0 && pool[MAXMEMORY_EVICTION_POOL_SIZE-1].key != NULL) {
             /* Can't insert if the element is < the worst element we have
              * and there are no empty buckets. */
-            //poolç©ºé—´å·²æ»¡ï¼Œæ— æ³•æ’å…¥
+            //pool¿Õ¼äÒÑÂú£¬ÎŞ·¨²åÈë
             continue;
         } else if (k < MAXMEMORY_EVICTION_POOL_SIZE && pool[k].key == NULL) {
             /* Inserting into empty position. No setup needed before insert. */
-            //æ‰¾åˆ°ä¸€ä¸ªç©ºä½ç½®
+            //ÕÒµ½Ò»¸ö¿ÕÎ»ÖÃ
         } else {
             /* Inserting in the middle. Now k points to the first element
              * greater than the element to insert.  */
             if (pool[MAXMEMORY_EVICTION_POOL_SIZE-1].key == NULL) {
                 /* Free space on the right? Insert at k shifting
                  * all the elements from k to end to the right. */
-                //å°†Kå³è¾¹çš„èŠ‚ç‚¹å³ç§»ä¸€ä¸ªå•å…ƒ
+                //½«KÓÒ±ßµÄ½ÚµãÓÒÒÆÒ»¸öµ¥Ôª
                 memmove(pool+k+1,pool+k,
                     sizeof(pool[0])*(MAXMEMORY_EVICTION_POOL_SIZE-k-1));
             } else {
@@ -3456,19 +3465,19 @@ void evictionPoolPopulate(dict *sampledict, dict *keydict, struct evictionPoolEn
                 k--;
                 /* Shift all elements on the left of k (included) to the
                  * left, so we discard the element with smaller idle time. */
-                //å°†kå·¦è¾¹çš„èŠ‚ç‚¹å¾€å·¦ç§»ä¸€ä¸ªå•å…ƒ
+                //½«k×ó±ßµÄ½ÚµãÍù×óÒÆÒ»¸öµ¥Ôª
                 sdsfree(pool[0].key);
                 memmove(pool,pool+1,sizeof(pool[0])*k);
             }
         }
-        //ä¿å­˜key
+        //±£´ækey
         pool[k].key = sdsdup(key);
-        //ä¿å­˜keyå¯¹åº”çš„idleå±æ€§
+        //±£´ækey¶ÔÓ¦µÄidleÊôĞÔ
         pool[k].idle = idle;
     }
     if (samples != _samples) zfree(samples);
 }
-//é‡Šæ”¾å†…å­˜
+//ÊÍ·ÅÄÚ´æ
 int freeMemoryIfNeeded(void) {
     size_t mem_used, mem_tofree, mem_freed;
     int slaves = listLength(server.slaves);
@@ -3547,10 +3556,10 @@ int freeMemoryIfNeeded(void) {
                         de = dictFind(dict,pool[k].key);
 
                         /* Remove the entry from the pool. */
-                        //é‡Šæ”¾key
+                        //ÊÍ·Åkey
                         sdsfree(pool[k].key);
                         /* Shift all elements on its right to left. */
-                        //å·¦ç§»ä¸€ä¸ªå•å…ƒ
+                        //×óÒÆÒ»¸öµ¥Ôª
                         memmove(pool+k,pool+k+1,
                             sizeof(pool[0])*(MAXMEMORY_EVICTION_POOL_SIZE-k-1));
                         /* Clear the element on the right which is empty
@@ -3675,11 +3684,33 @@ void createPidFile(void) {
         fclose(fp);
     }
 }
-
+//ÊØ»¤½ø³ÌÄ£Ê½
+/**
+     ÊØ»¤½ø³ÌµÄÒ»°ã²½Öè²½Öè£º
+    £¨1£©ÔÚ¸¸½ø³ÌÖĞÖ´ĞĞfork²¢exitÍÆ³ö£»
+    £¨2£©ÔÚ×Ó½ø³ÌÖĞµ÷ÓÃsetsidº¯Êı´´½¨ĞÂµÄ»á»°£»
+    £¨3£©ÔÚ×Ó½ø³ÌÖĞµ÷ÓÃchdirº¯Êı£¬ÈÃ¸ùÄ¿Â¼ ¡±/¡± ³ÉÎª×Ó½ø³ÌµÄ¹¤×÷Ä¿Â¼£»
+    £¨4£©ÔÚ×Ó½ø³ÌÖĞµ÷ÓÃumaskº¯Êı£¬ÉèÖÃ½ø³ÌµÄumaskÎª0£»
+    £¨5£©ÔÚ×Ó½ø³ÌÖĞ¹Ø±ÕÈÎºÎ²»ĞèÒªµÄÎÄ¼şÃèÊö·û
+*/
 void daemonize(void) {
     int fd;
 
-    if (fork() != 0) exit(0); /* parent exits */
+    if (fork() != 0) exit(0); /* parent exits */ //Ö÷½ø³ÌÍË³ö
+    //´´½¨ĞÂ»Ø»°
+    /**
+        setsid()º¯Êı¿ÉÒÔ½¨Á¢Ò»¸ö¶Ô»°ÆÚ£º
+
+        Èç¹û£¬µ÷ÓÃsetsidµÄ½ø³Ì²»ÊÇÒ»¸ö½ø³Ì×éµÄ×é³¤£¬´Ëº¯Êı´´½¨Ò»¸öĞÂµÄ»á»°ÆÚ¡£
+
+        (1)´Ë½ø³Ì±ä³É¸Ã¶Ô»°ÆÚµÄÊ×½ø³Ì
+
+        (2)´Ë½ø³Ì±ä³ÉÒ»¸öĞÂ½ø³Ì×éµÄ×é³¤½ø³Ì¡£
+
+        (3)´Ë½ø³ÌÃ»ÓĞ¿ØÖÆÖÕ¶Ë£¬Èç¹ûÔÚµ÷ÓÃsetsidÇ°£¬¸Ã½ø³ÌÓĞ¿ØÖÆÖÕ¶Ë£¬ÄÇÃ´Óë¸ÃÖÕ¶ËµÄÁªÏµ±»½â³ı¡£ Èç¹û¸Ã½ø³ÌÊÇÒ»¸ö½ø³Ì×éµÄ×é³¤£¬´Ëº¯Êı·µ»Ø´íÎó¡£
+
+        (4)ÎªÁË±£Ö¤ÕâÒ»µã£¬ÎÒÃÇÏÈµ÷ÓÃfork()È»ºóexit()£¬´ËÊ±Ö»ÓĞ×Ó½ø³ÌÔÚÔËĞĞ
+    */
     setsid(); /* create a new session */
 
     /* Every output goes to /dev/null. If Redis is daemonized but
@@ -3783,7 +3814,7 @@ static void sigShutdownHandler(int sig) {
     serverLogFromHandler(LL_WARNING, msg);
     server.shutdown_asap = 1;
 }
-//æ³¨å†Œä¿¡å·
+//×¢²áĞÅºÅ
 void setupSignalHandlers(void) {
     struct sigaction act;
 
@@ -3791,7 +3822,7 @@ void setupSignalHandlers(void) {
      * Otherwise, sa_handler is used. */
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
-    //ä¿¡å·å¤„ç†å‡½æ•°
+    //ĞÅºÅ´¦Àíº¯Êı
     act.sa_handler = sigShutdownHandler;
     sigaction(SIGTERM, &act, NULL);
     sigaction(SIGINT, &act, NULL);
@@ -3824,12 +3855,12 @@ int checkForSentinelMode(int argc, char **argv) {
 /* Function called at startup to load RDB or AOF file in memory. */
 void loadDataFromDisk(void) {
     long long start = ustime();
-    //ä¼˜å…ˆä»AOFæ–‡ä»¶æ¢å¤æ•°æ®
+    //ÓÅÏÈ´ÓAOFÎÄ¼ş»Ö¸´Êı¾İ
     if (server.aof_state == AOF_ON) {
         if (loadAppendOnlyFile(server.aof_filename) == C_OK)
             serverLog(LL_NOTICE,"DB loaded from append only file: %.3f seconds",(float)(ustime()-start)/1000000);
     } else {
-        //rdbæ–‡ä»¶æ¢å¤æ•°æ®
+        //rdbÎÄ¼ş»Ö¸´Êı¾İ
         if (rdbLoad(server.rdb_filename) == C_OK) {
             serverLog(LL_NOTICE,"DB loaded from disk: %.3f seconds",
                 (float)(ustime()-start)/1000000);
@@ -3839,7 +3870,7 @@ void loadDataFromDisk(void) {
         }
     }
 }
-//è¶…å‡ºå†…å­˜å¼‚å¸¸æ•è·å‡½æ•°
+//³¬³öÄÚ´æÒì³£²¶»ñº¯Êı
 void redisOutOfMemoryHandler(size_t allocation_size) {
     serverLog(LL_WARNING,"Out Of Memory allocating %zu bytes!",
         allocation_size);
@@ -3993,16 +4024,16 @@ int main(int argc, char **argv) {
     spt_init(argc, argv);
 #endif
     setlocale(LC_COLLATE,"");
-    //çº¿ç¨‹å®‰å…¨
+    //Ïß³Ì°²È«
     zmalloc_enable_thread_safeness();
-    //è®¾ç½®ç”³è¯·å†…å­˜å‘Šè­¦å‡½æ•°
+    //ÉèÖÃÉêÇëÄÚ´æ¸æ¾¯º¯Êı
     zmalloc_set_oom_handler(redisOutOfMemoryHandler);
     srand(time(NULL)^getpid());
     gettimeofday(&tv,NULL);
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
-    //setinel_modeæ¨¡å¼
+    //setinel_modeÄ£Ê½
     server.sentinel_mode = checkForSentinelMode(argc,argv);
-    //åˆå§‹åŒ–æœåŠ¡é…ç½®
+    //³õÊ¼»¯·şÎñÅäÖÃ
     initServerConfig();
 
     /* Store the executable path and arguments in a safe place in order
@@ -4015,7 +4046,7 @@ int main(int argc, char **argv) {
     /* We need to init sentinel right now as parsing the configuration file
      * in sentinel mode will have the effect of populating the sentinel
      * data structures with master nodes to monitor. */
-    //å“¨å…µæ¨¡å¼
+    //ÉÚ±øÄ£Ê½
     if (server.sentinel_mode) {
         initSentinelConfig();
         initSentinel();
@@ -4089,7 +4120,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
         resetServerSaveParams();
-        //åŠ è½½é…ç½®æ–‡ä»¶
+        //¼ÓÔØÅäÖÃÎÄ¼ş
         loadServerConfig(configfile,options);
         sdsfree(options);
     } else {
@@ -4098,14 +4129,14 @@ int main(int argc, char **argv) {
 
     server.supervised = redisIsSupervised(server.supervised_mode);
     int background = server.daemonize && !server.supervised;
-    //å®ˆæŠ¤è¿›ç¨‹æ¨¡å¼
+    //ÊØ»¤½ø³ÌÄ£Ê½
     if (background) daemonize();
-    //åˆå§‹åŒ–æœåŠ¡ä¿¡æ¯
+    //³õÊ¼»¯·şÎñĞÅÏ¢
     initServer();
     if (background || server.pidfile) createPidFile();
     redisSetProcTitle(argv[0]);
     redisAsciiArt();
-    //tcpè¿æ¥ä¾¦å¬é˜Ÿåˆ—å¤§å°è®¾ç½®
+    //tcpÁ¬½ÓÕìÌı¶ÓÁĞ´óĞ¡ÉèÖÃ
     checkTcpBacklogSettings();
 
     if (!server.sentinel_mode) {
@@ -4114,7 +4145,7 @@ int main(int argc, char **argv) {
     #ifdef __linux__
         linuxMemoryWarnings();
     #endif
-        //ä»dbå¤‡ä»½æ–‡ä»¶ä¸­åŠ è½½æ•°æ®
+        //´Ódb±¸·İÎÄ¼şÖĞ¼ÓÔØÊı¾İ
         loadDataFromDisk();
         if (server.cluster_enabled) {
             if (verifyClusterConfigWithData() == C_ERR) {
@@ -4129,7 +4160,7 @@ int main(int argc, char **argv) {
         if (server.sofd > 0)
             serverLog(LL_NOTICE,"The server is now ready to accept connections at %s", server.unixsocket);
     } else {
-        //å“¨å…µæ¨¡å¼ä¸‹è¿è¡Œ
+        //ÉÚ±øÄ£Ê½ÏÂÔËĞĞ
         sentinelIsRunning();
     }
 
@@ -4137,11 +4168,11 @@ int main(int argc, char **argv) {
     if (server.maxmemory > 0 && server.maxmemory < 1024*1024) {
         serverLog(LL_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);
     }
-    //äº‹ä»¶ä¹‹å‰è°ƒç”¨å‡½æ•°
+    //ÊÂ¼şÖ®Ç°µ÷ÓÃº¯Êı
     aeSetBeforeSleepProc(server.el,beforeSleep);
-    //ç›‘å¬äº‹ä»¶
+    //¼àÌıÊÂ¼ş
     aeMain(server.el);
-    //åˆ é™¤äº‹ä»¶é©±åŠ¨
+    //É¾³ıÊÂ¼şÇı¶¯
     aeDeleteEventLoop(server.el);
     return 0;
 }
