@@ -68,11 +68,16 @@ client *createClient(int fd) {
      * This is useful since all the commands needs to be executed
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
+    //fd=-1 为伪客户端
     if (fd != -1) {
+        //设置非阻塞
         anetNonBlock(NULL,fd);
+        //开启TCP_NODELAY，允许小包发送
+        //关闭TCP_NODELAY，数据只有在写缓存中累积到一定量之后，才会被发送出去，这样明显提高了网络利用率（实际传输数据payload与协议头的比例大大提高）。但是这由不可避免地增加了延时；与TCP delayed ack这个特性结合，这个问题会更加显著，延时基本在40ms左右。当然这个问题只有在连续进行两次写操作的时候，才会暴露出来。
         anetEnableTcpNoDelay(NULL,fd);
         if (server.tcpkeepalive)
             anetKeepAlive(NULL,fd,server.tcpkeepalive);
+        //添加读取事件
         if (aeCreateFileEvent(server.el,fd,AE_READABLE,
             readQueryFromClient, c) == AE_ERR)
         {
@@ -151,6 +156,7 @@ client *createClient(int fd) {
  * Typically gets called every time a reply is built, before adding more
  * data to the clients output buffers. If the function returns C_ERR no
  * data should be appended to the output buffers. */
+//将客户端添加到回复的客户端列表中
 int prepareClientToWrite(client *c) {
     /* If it's the Lua client we always return ok without installing any
      * handler since there is no socket at all. */
@@ -834,6 +840,7 @@ void freeClient(client *c) {
     /* Unlink the client: this will close the socket, remove the I/O
      * handlers, and remove references of the client from different
      * places where active clients may be referenced. */
+    //移除客户端事件
     unlinkClient(c);
 
     /* Master/slave cleanup Case 1:
@@ -995,6 +1002,7 @@ void sendReplyToClient(aeEventLoop *el, int fd, void *privdata, int mask) {
  * we can just write the replies to the client output buffer without any
  * need to use a syscall in order to install the writable event handler,
  * get it called, and so forth. */
+//处理发送给客户端的数据
 int handleClientsWithPendingWrites(void) {
     listIter li;
     listNode *ln;
@@ -1011,6 +1019,7 @@ int handleClientsWithPendingWrites(void) {
 
         /* If there is nothing left, do nothing. Otherwise install
          * the write handler. */
+        //如果还有数据未发送,则注册异步事件进行发送
         if (clientHasPendingReplies(c) &&
             aeCreateFileEvent(server.el, c->fd, AE_WRITABLE,
                 sendReplyToClient, c) == AE_ERR)
@@ -1044,7 +1053,7 @@ void resetClient(client *c) {
         c->flags &= ~CLIENT_REPLY_SKIP_NEXT;
     }
 }
-
+//解析客户端命令
 int processInlineBuffer(client *c) {
     char *newline;
     int argc, j;
@@ -1070,6 +1079,7 @@ int processInlineBuffer(client *c) {
     /* Split the input buffer up to the \r\n */
     querylen = newline-(c->querybuf);
     aux = sdsnewlen(c->querybuf,querylen);
+    //分割字符串
     argv = sdssplitargs(aux,&argc);
     sdsfree(aux);
     if (argv == NULL) {
@@ -1282,8 +1292,10 @@ void processInputBuffer(client *c) {
         }
 
         if (c->reqtype == PROTO_REQ_INLINE) {
+            //单行命令操作
             if (processInlineBuffer(c) != C_OK) break;
         } else if (c->reqtype == PROTO_REQ_MULTIBULK) {
+            //批量命令操作
             if (processMultibulkBuffer(c) != C_OK) break;
         } else {
             serverPanic("Unknown request type");
@@ -1294,6 +1306,7 @@ void processInputBuffer(client *c) {
             resetClient(c);
         } else {
             /* Only reset the client when the command was executed. */
+            //执行客户端命令
             if (processCommand(c) == C_OK)
                 resetClient(c);
             /* freeMemoryIfNeeded may flush slave output buffers. This may result
@@ -1304,13 +1317,14 @@ void processInputBuffer(client *c) {
     server.current_client = NULL;
 }
 
+//读取客户端数据
 void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     client *c = (client*) privdata;
     int nread, readlen;
     size_t qblen;
     UNUSED(el);
     UNUSED(mask);
-
+    //PROTO_IOBUF_LEN = 16*1024
     readlen = PROTO_IOBUF_LEN;
     /* If this is a multi bulk request, and we are processing a bulk reply
      * that is large enough, try to maximize the probability that the query
@@ -1328,9 +1342,11 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
 
     qblen = sdslen(c->querybuf);
     if (c->querybuf_peak < qblen) c->querybuf_peak = qblen;
+    //扩容c->querybuf
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
     nread = read(fd, c->querybuf+qblen, readlen);
     if (nread == -1) {
+        //读取异常
         if (errno == EAGAIN) {
             return;
         } else {
@@ -1339,6 +1355,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
             return;
         }
     } else if (nread == 0) {
+        //未读取到数据
         serverLog(LL_VERBOSE, "Client closed connection");
         freeClient(c);
         return;
@@ -1348,6 +1365,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     c->lastinteraction = server.unixtime;
     if (c->flags & CLIENT_MASTER) c->reploff += nread;
     server.stat_net_input_bytes += nread;
+    //sds字符串长度>server.client_max_querybuf_len时  server.client_max_querybuf_len默认为1G
     if (sdslen(c->querybuf) > server.client_max_querybuf_len) {
         sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
 
@@ -1358,6 +1376,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         freeClient(c);
         return;
     }
+    //解析客户端数据
     processInputBuffer(c);
 }
 

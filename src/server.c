@@ -2256,6 +2256,7 @@ void call(client *c, int flags) {
     /* Call the command. */
     dirty = server.dirty;
     start = ustime();
+    //Ö´ĞĞÃüÁî
     c->cmd->proc(c);
     duration = ustime()-start;
     dirty = server.dirty-dirty;
@@ -2535,6 +2536,7 @@ int processCommand(client *c) {
         c->cmd->proc != execCommand && c->cmd->proc != discardCommand &&
         c->cmd->proc != multiCommand && c->cmd->proc != watchCommand)
     {
+        //ÊÂÎñ
         queueMultiCommand(c);
         addReply(c,shared.queued);
     } else {

@@ -68,7 +68,7 @@ void queueMultiCommand(client *c) {
         incrRefCount(mc->argv[j]);
     c->mstate.count++;
 }
-
+//取消事务
 void discardTransaction(client *c) {
     freeClientMultiState(c);
     initClientMultiState(c);
@@ -137,6 +137,7 @@ void execCommand(client *c) {
     }
 
     /* Exec all the queued commands */
+    //移除观察列表
     unwatchAllKeys(c); /* Unwatch ASAP otherwise we'll waste CPU cycles */
     orig_argv = c->argv;
     orig_argc = c->argc;
@@ -206,6 +207,8 @@ void watchForKey(client *c, robj *key) {
     watchedKey *wk;
 
     /* Check if we are already watching for this key */
+    //判断key是否已存在
+    //重置到表头
     listRewind(c->watched_keys,&li);
     while((ln = listNext(&li))) {
         wk = listNodeValue(ln);
@@ -213,23 +216,27 @@ void watchForKey(client *c, robj *key) {
             return; /* Key already watched */
     }
     /* This key is not already watched in this DB. Let's add it */
+    //系统对应的db watched_keys
     clients = dictFetchValue(c->db->watched_keys,key);
     if (!clients) {
         clients = listCreate();
         dictAdd(c->db->watched_keys,key,clients);
         incrRefCount(key);
     }
+    //添加客户端到对应的db观察列表
     listAddNodeTail(clients,c);
     /* Add the new key to the list of keys watched by this client */
     wk = zmalloc(sizeof(*wk));
     wk->key = key;
     wk->db = c->db;
     incrRefCount(key);
+    //添加到客户端的watched_keys列表
     listAddNodeTail(c->watched_keys,wk);
 }
 
 /* Unwatch all the keys watched by this client. To clean the EXEC dirty
  * flag is up to the caller. */
+//移除观察列表
 void unwatchAllKeys(client *c) {
     listIter li;
     listNode *ln;
@@ -303,7 +310,7 @@ void touchWatchedKeysOnFlush(int dbid) {
         }
     }
 }
-
+//watch命令
 void watchCommand(client *c) {
     int j;
 
@@ -315,7 +322,7 @@ void watchCommand(client *c) {
         watchForKey(c,c->argv[j]);
     addReply(c,shared.ok);
 }
-
+//取消watch命令
 void unwatchCommand(client *c) {
     unwatchAllKeys(c);
     c->flags &= (~CLIENT_DIRTY_CAS);
