@@ -1358,10 +1358,12 @@ void aofUpdateCurrentSize(void) {
     mstime_t latency;
 
     latencyStartMonitor(latency);
+    //获取aof文件大小
     if (redis_fstat(server.aof_fd,&sb) == -1) {
         serverLog(LL_WARNING,"Unable to obtain the AOF file length. stat: %s",
             strerror(errno));
     } else {
+        //更新server.aof_current_size
         server.aof_current_size = sb.st_size;
     }
     latencyEndMonitor(latency);
@@ -1473,6 +1475,7 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
             else if (server.aof_fsync == AOF_FSYNC_EVERYSEC)
                 aof_background_fsync(newfd);
             server.aof_selected_db = -1; /* Make sure SELECT is re-issued */
+            // 获取新aof文件的大小，并保存至 server.aof_current_size
             aofUpdateCurrentSize();
             server.aof_rewrite_base_size = server.aof_current_size;
 

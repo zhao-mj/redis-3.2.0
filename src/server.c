@@ -1200,7 +1200,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
                     "rdb_child_pid = %d, aof_child_pid = %d",
                     strerror(errno),
                     (int) server.rdb_child_pid,
-                    (int) server.aof_child_pid);
+                    (int) server.aof_child_pid);server.saveparamslen
             } else if (pid == server.rdb_child_pid) {//RDB子进程退出信号
                 backgroundSaveDoneHandler(exitcode,bysignal);
             } else if (pid == server.aof_child_pid) {//AOF子进程退出信号
@@ -1217,6 +1217,7 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     } else {
         /* If there is not a background saving/rewrite in progress check if
          * we have to save/rewrite now */
+         //rdb文件备份
          for (j = 0; j < server.saveparamslen; j++) {
             struct saveparam *sp = server.saveparams+j;
 
@@ -4121,6 +4122,7 @@ int main(int argc, char **argv) {
                 "Sentinel needs config file on disk to save state.  Exiting...");
             exit(1);
         }
+        //重置save参数
         resetServerSaveParams();
         //加载配置文件
         loadServerConfig(configfile,options);
